@@ -10,6 +10,7 @@ const p = 1099511627791
 
 const logN1 = 20
 const numChallengeBits = 1 << logN1
+const voidMarker = ^uint32(0)
 const N1 = numChallengeBits - logN1
 // math.ceil(math.log2(p) * 2))
 const checkLen = 81
@@ -79,28 +80,44 @@ func main() {
 	start := time.Now()
 
 	cdict := make(map[Num][]Num)
-	v := [logN1]bool{}
-	for i := Num(0); i < N1; i++ {
-		copy(v[:], challenge[i:i+logN1])
-		c := bitstringToInt(v)
-		cdict[c] = append(cdict[c], i)
+	{
+		v := [logN1]bool{}
+		for i := Num(0); i < N1; i++ {
+			copy(v[:], challenge[i:i+logN1])
+			c := bitstringToInt(v)
+			cdict[c] = append(cdict[c], i)
+		}
+	}
+	// substring -> index in candidates list. End is start of next substring
+	lookupArr := [numChallengeBits + 1]uint32{}
+	// list of candidates.
+	candidates := make([]Num, 0, N1)
+	{
+		for i := Num(0); i < numChallengeBits; i++ {
+			lookupArr[i] = uint32(len(candidates))
+			if v, ok := cdict[i]; ok && len(v) > 0 {
+				candidates = append(candidates, v...)
+			}
+		}
 	}
 
 	fpCount := uint64(0)
 
+	matchingStart := time.Now()
 	findMatch := func() Num {
 		currentKey := Num(0)
 		expectedN2 := p / N1 / 2
 		numberOfTries := uint64(0)
 		for {
 			numberOfTries++
-			if numberOfTries%100000 == 0 {
+			if numberOfTries & ((1 << 16) - 1) == 0 {
 				fmt.Printf("Tried %d keys (expected = %d)\n", numberOfTries, expectedN2)
 			}
 			currentKey = (currentKey + N1) % p
 			c := computeSubsequence(currentKey)
-			if offsets, ok := cdict[c]; ok {
-				offsetLoop: for _, keyOffset := range offsets {
+			if start, end := lookupArr[c], lookupArr[c + 1]; start != end {
+				offsetLoop: for i := start; i < end; i++ {
+					keyOffset := candidates[i]
 					predictedKey := currentKey - keyOffset
 					for x := Num(0); x < checkLen; x++ {
 						if jacobiBitMpz(predictedKey+x, p) != challenge[x] {
@@ -121,6 +138,7 @@ func main() {
 	}
 	end := time.Now()
 	fmt.Printf("False positive count %d\n", fpCount)
-	fmt.Printf("Time taken: %s\n", end.Sub(start).String())
+	fmt.Printf("Total time taken: %s\n", end.Sub(start).String())
+	fmt.Printf("Matching Time taken: %s\n", end.Sub(matchingStart).String())
 	fmt.Printf("Total Legendre evaluations: %d\n", legendreEvals)
 }
