@@ -1,8 +1,9 @@
-package main
+package legendre_key_recovery
 
 import (
 	"fmt"
 	"math/big"
+	"testing"
 	"time"
 )
 
@@ -64,7 +65,9 @@ func computeSubsequence(keyStart Num) (out Num) {
 }
 
 // Solve challenge using Khovratovich algorithm
-func main() {
+func BenchmarkRecovery(b *testing.B) {
+	fmt.Println("-----------")
+
 	// Create challenge
 	// key = 3**1000 % p
 	key := Num(new(big.Int).Exp(
@@ -101,17 +104,21 @@ func main() {
 		}
 	}
 
+	expectedTries := p / N1 / 2
+	fmt.Printf("expected number of tries: %d\n", expectedTries)
+
 	fpCount := uint64(0)
 
 	matchingStart := time.Now()
+	b.ResetTimer()
+
 	findMatch := func() Num {
 		currentKey := Num(0)
-		expectedN2 := p / N1 / 2
 		numberOfTries := uint64(0)
 		for {
 			numberOfTries++
 			if numberOfTries & ((1 << 16) - 1) == 0 {
-				fmt.Printf("Tried %d keys (expected = %d)\n", numberOfTries, expectedN2)
+				fmt.Printf("Tried %d keys\n", numberOfTries)
 			}
 			currentKey = (currentKey + N1) % p
 			c := computeSubsequence(currentKey)
@@ -131,10 +138,12 @@ func main() {
 		}
 	}
 
+	b.StopTimer()
+
 	legendreEvals = 0
 	res := findMatch()
 	if res != key {
-		panic("found unexpected key")
+		b.Fatal("found unexpected key")
 	}
 	end := time.Now()
 	fmt.Printf("False positive count %d\n", fpCount)
