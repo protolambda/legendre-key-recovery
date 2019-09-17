@@ -27,14 +27,14 @@ func jacobiBitMpz(a Num, n Num) bool {
 	//assert(n > a > 0 and n%2 == 1)
 	t := true
 	for a != 0 {
-		for a%2 == 0 {
-			a /= 2
-			if r := n % 8; r == 3 || r == 5 {
+		for a & 1 == 0 {
+			a >>= 1
+			if r := n & 0x7; r == 3 || r == 5 {
 				t = !t
 			}
 		}
 		a, n = n, a
-		if a%4 == 3 && n%4 == 3 {
+		if (a&3 == 3) && (n&3 == 3) {
 			t = !t
 		}
 		a %= n
