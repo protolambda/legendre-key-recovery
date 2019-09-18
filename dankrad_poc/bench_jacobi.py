@@ -11,11 +11,13 @@ def jacobi_bit_mpz(a, n):
 def jacobi_bench():
     N = 10000000
     res = False
-    start = timer()
-    for i in range(N):
+    start = p // 2
+    end = start + N
+    start_time = timer()
+    for i in range(start, end):
         res ^= jacobi_bit_mpz(i, p)
-    end = timer()
-    t = end - start
+    end_time = timer()
+    t = end_time - start_time
     print((t/N) * 10e9, " ns")
 
 

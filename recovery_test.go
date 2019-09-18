@@ -159,7 +159,9 @@ func BenchmarkRecovery(b *testing.B) {
 func BenchmarkJacobiUint64(b *testing.B) {
 	// accumulate the work so that it does not get optimized away in any way
 	res := false
-	for i := Num(0); i < Num(b.N); i++ {
+	start := Num(p / 2)
+	end := start + Num(b.N)
+	for i := start; i < end; i++ {
 		res = res != jacobiBitMpz(i, p)
 	}
 	b.Log("res after ", b.N, " runs: ", res)
@@ -170,7 +172,9 @@ func BenchmarkJacobiBigInt(b *testing.B) {
 	res := false
 	v := new(big.Int)
 	pBig := new(big.Int).SetUint64(p)
-	for i := uint64(0); i < uint64(b.N); i++ {
+	start := uint64(p / 2)
+	end := start + uint64(b.N)
+	for i := start; i < end; i++ {
 		v.SetUint64(i)
 		res = res != (big.Jacobi(v, pBig) == 1)
 	}
