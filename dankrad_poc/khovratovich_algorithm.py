@@ -19,7 +19,7 @@ legendre_evals = 0
 def jacobi_bit_mpz(a, n):
     global legendre_evals
     legendre_evals += 1
-    return (gmpy2.legendre(a, n) + 1) // 2
+    return gmpy2.legendre(a, n) > 0
 
 # Create challenge
 key = 3**1000 % p

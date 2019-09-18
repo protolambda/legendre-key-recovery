@@ -21,9 +21,7 @@ var legendreEvals uint64 = 0
 // logN1 bits number
 type Num uint64
 
-// jacobi (-1 -> false, 0 -> false, 1 -> true)
 func jacobiBitMpz(a Num, n Num) bool {
-	legendreEvals++
 	//assert(n > a > 0 and n%2 == 1)
 	t := true
 	for a != 0 {
@@ -44,6 +42,12 @@ func jacobiBitMpz(a Num, n Num) bool {
 	} else {
 		return false
 	}
+}
+
+// jacobi (-1 -> false, 0 -> false, 1 -> true)
+func jacobiBitMpzCounted(a Num, n Num) bool {
+	legendreEvals++
+	return jacobiBitMpz(a, n)
 }
 
 func bitstringToInt(bits [logN1]bool) (out Num) {
@@ -127,7 +131,7 @@ func BenchmarkRecovery(b *testing.B) {
 					keyOffset := candidates[i]
 					predictedKey := currentKey - keyOffset
 					for x := Num(0); x < checkLen; x++ {
-						if jacobiBitMpz(predictedKey+x, p) != challenge[x] {
+						if jacobiBitMpzCounted(predictedKey+x, p) != challenge[x] {
 							fpCount++
 							continue offsetLoop
 						}
@@ -150,4 +154,25 @@ func BenchmarkRecovery(b *testing.B) {
 	fmt.Printf("Total time taken: %s\n", end.Sub(start).String())
 	fmt.Printf("Matching Time taken: %s\n", end.Sub(matchingStart).String())
 	fmt.Printf("Total Legendre evaluations: %d\n", legendreEvals)
+}
+
+func BenchmarkJacobiUint64(b *testing.B) {
+	// accumulate the work so that it does not get optimized away in any way
+	res := false
+	for i := Num(0); i < Num(b.N); i++ {
+		res = res != jacobiBitMpz(i, p)
+	}
+	b.Log("res after ", b.N, " runs: ", res)
+}
+
+func BenchmarkJacobiBigInt(b *testing.B) {
+	// accumulate the work so that it does not get optimized away in any way
+	res := false
+	v := new(big.Int)
+	pBig := new(big.Int).SetUint64(p)
+	for i := uint64(0); i < uint64(b.N); i++ {
+		v.SetUint64(i)
+		res = res != (big.Jacobi(v, pBig) == 1)
+	}
+	b.Log("res after ", b.N, " runs: ", res)
 }
